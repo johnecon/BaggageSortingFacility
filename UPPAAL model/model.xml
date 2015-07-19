@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?><!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'><nta><declaration>// Place global declarations here.
+const int L = 1;
+const int R = 0;
+const int FWD = 1;
+const int STOP = 2;
+const int NO_BAGS = 4;
+const int NONE = 2;
+const int INVALID = 3;
+const int Y = 1;
+const int B = 0;
+const int FULL_SLOW = 134;
+const int FULL_FAST = 76;
+const int LNG  = 106;  // Long waiting period, actual is 85 115 final 106
+const int SHR = 52;  // Short waiting period, actual is 36 60 final 60
+const int SHR_D = 0;
+const int LNG_D = 1;
+
+clock timers[2];
+bool priorities[2] = {true, true};
+int waiting = 0;
+bool free = true;
+clock time;
+chan startTimer[2];
+typedef int[0,NO_BAGS-1] t_id;
+//Dummy urgent
+urgent chan next;
+
+// Distribution Belt Controller
+chan updateDistDirection[2];
+
+// Feed Belt Direction
+int distBags;
+int feedDir[2] = {STOP,STOP};
+int collisionBags[2];
+
+// Distribution Belt Direction Possible Values:  0 -&gt; left, 1 -&gt; right, 2 -&gt; stop, 
+int distDirection = L;
+
+// Bag
+int sensorValue[2] = {NONE, NONE};
+int feedBags[2];
+
+//FeedController
+chan newBag[NO_BAGS][2][2];
+chan bagArrivedAtSensor;
+urgent chan distBeltFree;
+
+
+//User
+int bagNumber[2] = {0,1};</declaration><template><name>DistributionBelt</name><location id="id0" x="-160" y="8"><name x="-208" y="-40">StoppedInstantly</name><committed/></location><location id="id1" x="-160" y="88"><name x="-184" y="56">Stopped</name><urgent/></location><location id="id2" x="72" y="88"><name x="80" y="56">Right</name></location><location id="id3" x="-376" y="88"><name x="-408" y="64">Left</name></location><init ref="id1"/><transition><source ref="id2"/><target ref="id0"/><label kind="guard" x="-72" y="-24">distDirection == L</label><label kind="synchronisation" x="-24" y="-40">next?</label><nail x="72" y="8"/></transition><transition><source ref="id0"/><target ref="id2"/><label kind="guard" x="-104" y="8">distDirection == R</label><nail x="-160" y="32"/><nail x="24" y="32"/></transition><transition><source ref="id0"/><target ref="id3"/><label kind="guard" x="-312" y="8">distDirection == L</label><nail x="-160" y="32"/><nail x="-320" y="32"/></transition><transition><source ref="id3"/><target ref="id0"/><label kind="guard" x="-336" y="-24">distDirection == R</label><label kind="synchronisation" x="-296" y="-40">next?</label><nail x="-376" y="8"/></transition><transition><source ref="id1"/><target ref="id2"/><label kind="guard" x="-112" y="128">distDirection == R</label><nail x="-136" y="152"/><nail x="40" y="152"/></transition><transition><source ref="id3"/><target ref="id1"/><label kind="guard" x="-328" y="128">distDirection==STOP</label><label kind="synchronisation" x="-296" y="152">next?</label><nail x="-336" y="152"/><nail x="-192" y="152"/></transition><transition><source ref="id1"/><target ref="id3"/><label kind="guard" x="-352" y="64">distDirection==L</label><nail x="-264" y="88"/></transition><transition><source ref="id2"/><target ref="id1"/><label kind="guard" x="-112" y="64">distDirection==STOP</label><label kind="synchronisation" x="-64" y="96">next?</label><nail x="56" y="88"/><nail x="24" y="88"/><nail x="-16" y="88"/></transition></template><template><name>FeedController</name><parameter>int belt</parameter><declaration>clock x;
+bool destA;
+bool waited = false;</declaration><location id="id4" x="-1832" y="-1304"><name x="-1816" y="-1336">PriorityControl</name><committed/></location><location id="id5" x="-2048" y="-1304"><name x="-2136" y="-1336">WaitingRoom</name></location><location id="id6" x="-2312" y="-1184"><name x="-2328" y="-1168">Entering</name></location><location id="id7" x="-2456" y="-1432"><committed/></location><location id="id8" x="-2904" y="-1432"><committed/></location><location id="id9" x="-2472" y="-1184"><name x="-2552" y="-1224">SleepForAdvanceSensor</name><label kind="invariant" x="-2496" y="-1160">x&lt;=20</label></location><location id="id10" x="-2720" y="-1432"><name x="-2760" y="-1472">Iddle</name></location><location id="id11" x="-2160" y="-1432"><committed/></location><location id="id12" x="-2720" y="-1240"><name x="-2944" y="-1256">SleepingForProperSensorValue</name><label kind="invariant" x="-2696" y="-1264">x&lt;=8</label></location><init ref="id8"/><transition><source ref="id4"/><target ref="id5"/><label kind="guard" x="-1816" y="-1232">timers[L] &gt;= timers[R]</label><label kind="assignment" x="-1792" y="-1280">priorities[L] := true,
+priorities[R] := false,
+waited := true</label><nail x="-1824" y="-1192"/><nail x="-1912" y="-1192"/></transition><transition><source ref="id4"/><target ref="id5"/><label kind="guard" x="-2032" y="-1328">(timers[R] &gt; timers[L])</label><label kind="assignment" x="-1984" y="-1304">priorities[R] := true,
+priorities[L] := false,
+waited := true</label></transition><transition><source ref="id5"/><target ref="id5"/><label kind="guard" x="-2032" y="-1176">free &amp;&amp; !priorities[belt] &amp;&amp; waiting != 2</label><label kind="synchronisation" x="-2024" y="-1216">next?</label><label kind="assignment" x="-2032" y="-1160">priorities[belt] := true</label><nail x="-1920" y="-1184"/><nail x="-2032" y="-1184"/></transition><transition><source ref="id5"/><target ref="id4"/><label kind="guard" x="-1936" y="-1440">free &amp;&amp; !priorities[belt] &amp;&amp; waiting == 2 &amp;&amp; !waited</label><label kind="synchronisation" x="-1824" y="-1416">next?</label><nail x="-2000" y="-1416"/><nail x="-1840" y="-1416"/></transition><transition><source ref="id6"/><target ref="id11"/><label kind="guard" x="-2296" y="-1282">free &amp;&amp; waiting == 0</label><label kind="synchronisation" x="-2296" y="-1267">next?</label><label kind="assignment" x="-2296" y="-1252">feedDir[belt] := FWD,
+free := false,
+x := 0</label><nail x="-2312" y="-1272"/><nail x="-2312" y="-1368"/><nail x="-2216" y="-1408"/></transition><transition><source ref="id9"/><target ref="id6"/><label kind="guard" x="-2416" y="-1184">x == 20</label></transition><transition><source ref="id6"/><target ref="id5"/><label kind="guard" x="-2200" y="-1224">!free</label><label kind="synchronisation" x="-2200" y="-1208">next?</label><label kind="assignment" x="-2240" y="-1176">feedDir[belt] := STOP,
+priorities[belt] := waiting == 0,
+waiting := waiting + 1,
+timers[belt] = 0</label><nail x="-2080" y="-1184"/></transition><transition><source ref="id5"/><target ref="id11"/><label kind="guard" x="-2112" y="-1536">free &amp;&amp; priorities[belt]</label><label kind="synchronisation" x="-2112" y="-1432">next?</label><label kind="assignment" x="-2104" y="-1520">feedDir[belt] := FWD,
+free := false,
+waiting := waiting - 1,
+waited := false,
+x := 0</label><nail x="-2048" y="-1432"/></transition><transition><source ref="id7"/><target ref="id10"/><label kind="synchronisation" x="-2696" y="-1488">startTimer[(belt == L &amp;&amp; destA)
+	|| (belt == R &amp;&amp; !destA) ? SHR_D : LNG_D]!</label><nail x="-2552" y="-1432"/></transition><transition><source ref="id11"/><target ref="id7"/><label kind="guard" x="-2376" y="-1456">distDirection == destA</label><nail x="-2232" y="-1432"/></transition><transition><source ref="id8"/><target ref="id10"/><label kind="assignment" x="-2864" y="-1424">feedDir[belt]:=FWD,
+distDirection := L</label></transition><transition><source ref="id12"/><target ref="id9"/><label kind="guard" x="-2760" y="-1224">x==8</label><label kind="assignment" x="-2728" y="-1176">x:=0,
+destA:= sensorValue[belt] != B</label><nail x="-2720" y="-1184"/></transition><transition><source ref="id10"/><target ref="id12"/><label kind="guard" x="-2704" y="-1392">sensorValue[belt] == INVALID</label><label kind="synchronisation" x="-2704" y="-1376">next?</label><label kind="assignment" x="-2712" y="-1352">x := 0</label></transition><transition><source ref="id11"/><target ref="id7"/><label kind="guard" x="-2400" y="-1536">distDirection != destA</label><label kind="assignment" x="-2400" y="-1520">distDirection := distDirection == L ? R : L</label><nail x="-2304" y="-1488"/></transition></template><template><name>NextSignalGenerator</name><location id="id13" x="0" y="0"><name x="-8" y="16">loop</name></location><init ref="id13"/><transition><source ref="id13"/><target ref="id13"/><label kind="synchronisation" x="-8" y="-80">next!</label><nail x="-40" y="-56"/><nail x="32" y="-56"/></transition></template><template><name>User</name><parameter>int belt</parameter><declaration>clock x;</declaration><location id="id14" x="-1032" y="-288"><name x="-1104" y="-272">aboutToIncreaseBagNumber</name></location><location id="id15" x="-792" y="-368"><name x="-802" y="-398">waiting</name><label kind="invariant" x="-768" y="-376">x&lt;=20</label></location><location id="id16" x="-1248" y="-368"><name x="-1258" y="-398">idle</name></location><init ref="id16"/><transition><source ref="id14"/><target ref="id16"/><label kind="guard" x="-1528" y="-320">feedBags[belt]==0 and bagNumber[belt]&lt; NO_BAGS-2</label><label kind="synchronisation" x="-1240" y="-336">next?</label><label kind="assignment" x="-1480" y="-304">bagNumber[belt] := bagNumber[belt]+1</label></transition><transition><source ref="id15"/><target ref="id14"/><label kind="guard" x="-896" y="-336">x==20</label><nail x="-936" y="-320"/></transition><transition><source ref="id16"/><target ref="id15"/><label kind="select" x="-1056" y="-464">bagColor : int[B, Y]</label><label kind="guard" x="-1256" y="-416">feedBags[belt]==0 and bagNumber[belt]&lt;NO_BAGS and feedDir[belt]==FWD</label><label kind="synchronisation" x="-1152" y="-440">newBag[bagNumber[belt]][belt][bagColor]!</label><label kind="assignment" x="-1048" y="-368">x:=0</label><nail x="-1136" y="-368"/><nail x="-912" y="-368"/></transition></template><template><name>Bag</name><parameter>t_id bagID</parameter><declaration>int belt;
+int color;
+clock c;
+clock time;</declaration><location id="id17" x="-56" y="64"><name x="-32" y="56">End</name></location><location id="id18" x="168" y="-376"><name x="128" y="-408">b1R</name><label kind="invariant" x="200" y="-384">c&lt;=12</label></location><location id="id19" x="-280" y="-376"><name x="-320" y="-408">b1L</name><label kind="invariant" x="-256" y="-384">c&lt;=12</label></location><location id="id20" x="-40" y="-496"><name x="-64" y="-528">Waiting</name></location><location id="id21" x="168" y="-704"><name x="160" y="-736">AtBeltR</name><urgent/></location><location id="id22" x="-280" y="-704"><name x="-328" y="-736">AtBeltL</name><urgent/></location><location id="id23" x="104" y="-768"><committed/></location><location id="id24" x="-184" y="-768"><committed/></location><location id="id25" x="-40" y="-832"><name x="-56" y="-872">Initial</name></location><location id="id26" x="-376" y="-16"><name x="-386" y="-46">YDelivered</name><committed/></location><location id="id27" x="-472" y="-112"><name x="-480" y="-144">eL</name><label kind="invariant" x="-544" y="-120">c&lt;=12</label></location><location id="id28" x="-280" y="-112"><name x="-290" y="-142">dL</name><label kind="invariant" x="-290" y="-97">c&lt;=23</label></location><location id="id29" x="-56" y="8"><name x="-80" y="-32">Delivered</name><committed/></location><location id="id30" x="264" y="-16"><name x="200" y="-48">BDelivered</name><committed/></location><location id="id31" x="360" y="-112"><name x="350" y="-142">eR</name><label kind="invariant" x="350" y="-97">c&lt;=12</label></location><location id="id32" x="168" y="-112"><name x="158" y="-142">dR</name><label kind="invariant" x="144" y="-96">c&lt;=23</label></location><location id="id33" x="-64" y="-112"><name x="-74" y="-142">f</name><label kind="invariant" x="-88" y="-96">c&lt;=31</label></location><location id="id34" x="264" y="-176"><name x="254" y="-206">cRR</name><label kind="invariant" x="288" y="-184">c&lt;=28</label></location><location id="id35" x="72" y="-176"><name x="24" y="-216">cRL</name><label kind="invariant" x="96" y="-192">c&lt;=28</label></location><location id="id36" x="168" y="-272"><name x="136" y="-304">b2R</name><label kind="invariant" x="184" y="-280">c&lt;=12</label></location><location id="id37" x="-184" y="-176"><name x="-194" y="-206">cLR</name><label kind="invariant" x="-168" y="-192">c&lt;=28</label></location><location id="id38" x="-376" y="-176"><name x="-416" y="-216">cLL</name><label kind="invariant" x="-344" y="-192">c&lt;=28</label></location><location id="id39" x="-280" y="-272"><name x="-312" y="-304">b2L</name><label kind="invariant" x="-256" y="-280">c&lt;=12</label></location><location id="id40" x="168" y="-464"><name x="128" y="-488">a2R</name><label kind="invariant" x="192" y="-472">c&lt;=2</label></location><location id="id41" x="-280" y="-464"><name x="-312" y="-496">a2L</name><label kind="invariant" x="-256" y="-480">c&lt;=2</label></location><location id="id42" x="168" y="-536"><name x="104" y="-568">sensorR</name><label kind="invariant" x="192" y="-552">c&lt;=12</label></location><location id="id43" x="-280" y="-536"><name x="-336" y="-568">sensorL</name><label kind="invariant" x="-256" y="-552">c&lt;=12</label></location><location id="id44" x="168" y="-632"><name x="128" y="-664">a1R</name><label kind="invariant" x="208" y="-640">c&lt;=2</label></location><location id="id45" x="-280" y="-632"><name x="-312" y="-656">a1L</name><label kind="invariant" x="-256" y="-648">c&lt;=2</label></location><init ref="id25"/><transition><source ref="id29"/><target ref="id17"/></transition><transition><source ref="id20"/><target ref="id36"/><label kind="guard" x="-40" y="-344">belt == R &amp;&amp;
+feedDir[belt] != STOP</label><label kind="synchronisation" x="-16" y="-368">next?</label><label kind="assignment" x="-16" y="-312">c:=0</label><nail x="-24" y="-344"/></transition><transition><source ref="id36"/><target ref="id20"/><label kind="guard" x="-8" y="-440">feedDir[belt] == STOP</label><label kind="synchronisation" x="24" y="-416">next?</label><nail x="104" y="-400"/></transition><transition><source ref="id20"/><target ref="id39"/><label kind="guard" x="-184" y="-352">belt == L &amp;&amp;
+feedDir[belt] != STOP</label><label kind="synchronisation" x="-152" y="-368">next?</label><label kind="assignment" x="-152" y="-312">c := 0</label><nail x="-72" y="-336"/></transition><transition><source ref="id40"/><target ref="id18"/><label kind="guard" x="184" y="-448">c==2</label><label kind="assignment" x="176" y="-432">c:=0,
+sensorValue[R] := NONE</label></transition><transition><source ref="id41"/><target ref="id19"/><label kind="guard" x="-328" y="-456">c==2</label><label kind="assignment" x="-480" y="-448">c:=0,
+sensorValue[L] := NONE</label></transition><transition><source ref="id18"/><target ref="id36"/><label kind="guard" x="184" y="-344">c==12</label><label kind="assignment" x="184" y="-320">c:=0</label></transition><transition><source ref="id19"/><target ref="id39"/><label kind="guard" x="-336" y="-352">c==12</label><label kind="assignment" x="-328" y="-336">c:=0</label></transition><transition><source ref="id39"/><target ref="id20"/><label kind="guard" x="-240" y="-456">feedDir[belt] == STOP</label><label kind="synchronisation" x="-168" y="-432">next?</label><nail x="-192" y="-408"/></transition><transition><source ref="id25"/><target ref="id23"/><label kind="synchronisation" x="-40" y="-760">newBag[bagID][R][Y]?</label><label kind="assignment" x="0" y="-736">belt := R, color := Y</label><nail x="0" y="-768"/></transition><transition><source ref="id25"/><target ref="id24"/><label kind="synchronisation" x="-184" y="-760">newBag[bagID][L][Y]?</label><label kind="assignment" x="-176" y="-736">belt:=L, color := Y</label><nail x="-80" y="-768"/></transition><transition><source ref="id25"/><target ref="id23"/><label kind="synchronisation" x="16" y="-896">newBag[bagID][R][B]?</label><label kind="assignment" x="16" y="-912">belt := R, color := B</label><nail x="8" y="-872"/><nail x="104" y="-848"/></transition><transition><source ref="id25"/><target ref="id24"/><label kind="synchronisation" x="-224" y="-896">newBag[bagID][L][B]?</label><label kind="assignment" x="-224" y="-912">belt := L, color := B</label><nail x="-104" y="-872"/><nail x="-192" y="-848"/></transition><transition><source ref="id21"/><target ref="id44"/><label kind="assignment" x="184" y="-680">sensorValue[R] := INVALID,
+feedBags[R]++, c:=0</label></transition><transition><source ref="id23"/><target ref="id21"/><label kind="assignment" x="144" y="-776">time := 0</label></transition><transition><source ref="id22"/><target ref="id45"/><label kind="assignment" x="-472" y="-688">sensorValue[L] := INVALID,
+feedBags[L]++, c:=0</label></transition><transition><source ref="id24"/><target ref="id22"/><label kind="assignment" x="-240" y="-728">time := 0</label></transition><transition><source ref="id28"/><target ref="id27"/><label kind="guard" x="-392" y="-136">c==23</label><label kind="assignment" x="-416" y="-112">c:=0,
+collisionBags[L]--</label></transition><transition><source ref="id33"/><target ref="id28"/><label kind="guard" x="-272" y="-64">c&gt;=26 and distDirection == L</label><label kind="assignment" x="-232" y="-112">c:=0,
+collisionBags[L]++</label></transition><transition><source ref="id37"/><target ref="id33"/><label kind="guard" x="-168" y="-152">c&gt;=25</label><label kind="assignment" x="-120" y="-184">c:=0,
+collisionBags[L]--</label></transition><transition><source ref="id39"/><target ref="id37"/><label kind="guard" x="-280" y="-224">c==12 and distDirection == R</label><label kind="assignment" x="-208" y="-288">c:=0,
+feedBags[L]--,
+collisionBags[L]++,
+distBags++</label></transition><transition><source ref="id32"/><target ref="id31"/><label kind="guard" x="208" y="-136">c==23</label><label kind="assignment" x="216" y="-112">collisionBags[R]--,
+c:=0</label></transition><transition><source ref="id33"/><target ref="id32"/><label kind="guard" x="-56" y="-64">c&gt;=26 and distDirection == R</label><label kind="assignment" x="-16" y="-104">c:=0,
+collisionBags[R]++</label></transition><transition><source ref="id35"/><target ref="id33"/><label kind="guard" x="32" y="-160">c&gt;=25</label><label kind="assignment" x="-64" y="-200">c:=0,
+collisionBags[R]--</label></transition><transition><source ref="id34"/><target ref="id31"/><label kind="guard" x="256" y="-152">c&gt;=25</label><label kind="assignment" x="328" y="-176">c:=0,
+collisionBags[R]--</label></transition><transition><source ref="id36"/><target ref="id34"/><label kind="guard" x="336" y="-264">c==12 and distDirection == R</label><label kind="assignment" x="232" y="-280">c:=0,
+feedBags[R]--,
+collisionBags[R]++,
+distBags++</label></transition><transition><source ref="id36"/><target ref="id35"/><label kind="guard" x="-80" y="-232">c==12 and distDirection == L</label><label kind="assignment" x="8" y="-288">c:=0,
+feedBags[R]--,
+collisionBags[R]++,
+distBags++</label></transition><transition><source ref="id42"/><target ref="id40"/><label kind="guard" x="184" y="-528">c==12</label><label kind="assignment" x="184" y="-512">c:=0,
+sensorValue[R] := INVALID</label></transition><transition><source ref="id44"/><target ref="id42"/><label kind="guard" x="192" y="-616">c==2</label><label kind="assignment" x="200" y="-592">c:=0,
+sensorValue[R] := color</label></transition><transition><source ref="id31"/><target ref="id30"/><label kind="guard" x="328" y="-64">c&gt;=11</label></transition><transition><source ref="id30"/><target ref="id29"/></transition><transition><source ref="id26"/><target ref="id29"/></transition><transition><source ref="id27"/><target ref="id26"/><label kind="guard" x="-472" y="-56">c&gt;=11</label></transition><transition><source ref="id38"/><target ref="id27"/><label kind="guard" x="-424" y="-152">c&gt;=25</label><label kind="assignment" x="-536" y="-176">c:=0,
+collisionBags[L]--</label></transition><transition><source ref="id39"/><target ref="id38"/><label kind="guard" x="-520" y="-232">c==12 and distDirection == L</label><label kind="assignment" x="-424" y="-288">c:=0,
+feedBags[L]--,
+collisionBags[L]++,
+distBags++</label></transition><transition><source ref="id43"/><target ref="id41"/><label kind="guard" x="-328" y="-528">c==12</label><label kind="assignment" x="-472" y="-528">c:=0,
+sensorValue[L] := INVALID</label></transition><transition><source ref="id45"/><target ref="id43"/><label kind="guard" x="-320" y="-608">c==2</label><label kind="assignment" x="-472" y="-608">c:=0,
+sensorValue[L] := color</label></transition></template><template><name>Timer</name><declaration>clock x;
+int delay;</declaration><location id="id46" x="-176" y="-88"><name x="-152" y="-96">Sleeping</name><label kind="invariant" x="-176" y="-72">x&lt;=delay</label></location><location id="id47" x="-400" y="-88"><name x="-448" y="-64">Waiting</name></location><init ref="id47"/><transition><source ref="id47"/><target ref="id46"/><label kind="synchronisation" x="-352" y="40">startTimer[LNG_D]?</label><label kind="assignment" x="-336" y="0">delay := LNG, x:=0</label><nail x="-360" y="32"/><nail x="-224" y="32"/></transition><transition><source ref="id46"/><target ref="id47"/><label kind="guard" x="-304" y="-248">x == delay</label><label kind="assignment" x="-304" y="-224">free := true</label><nail x="-208" y="-200"/><nail x="-352" y="-200"/></transition><transition><source ref="id47"/><target ref="id46"/><label kind="synchronisation" x="-352" y="-88">startTimer[SHR_D]?</label><label kind="assignment" x="-336" y="-72">delay := SHR, x := 0</label></transition></template><template><name>SingleUser</name><parameter>int belt</parameter><declaration>clock x;
+int bagColor = B;</declaration><location id="id48" x="-288" y="-128"></location><location id="id49" x="-80" y="-200"><label kind="invariant" x="-90" y="-185">x&lt;=20</label></location><location id="id50" x="-480" y="-200"></location><init ref="id50"/><transition><source ref="id48"/><target ref="id50"/><label kind="guard" x="-728" y="-144">feedBags[belt]==0 and bagNumber[belt]&lt; NO_BAGS-1</label><label kind="synchronisation" x="-452" y="-167">next?</label><label kind="assignment" x="-616" y="-120">bagNumber[belt] := bagNumber[belt]+1</label></transition><transition><source ref="id49"/><target ref="id48"/><label kind="guard" x="-184" y="-128">x == 20</label><label kind="assignment" x="-244" y="-164">bagColor := bagColor == Y ? B : Y</label></transition><transition><source ref="id50"/><target ref="id49"/><label kind="guard" x="-496" y="-240">feedBags[belt]==0 and bagNumber[belt]&lt;NO_BAGS and feedDir[belt]==FWD</label><label kind="synchronisation" x="-400" y="-272">newBag[bagNumber[belt]][belt][bagColor]!</label><label kind="assignment" x="-340" y="-200">x := 0</label></transition></template><system>// Place template instantiations here.
+
+DistBelt = DistributionBelt();
+FCRight = FeedController(R);
+FCLeft = FeedController(L);
+
+UR = User(R);
+UL = User(L);
+SUL = SingleUser(L);
+Next = NextSignalGenerator();
+
+// List one or more processes to be composed into a system.
+system Timer, UR, UL, DistBelt, Bag, FCRight, FCLeft, NextSignalGenerator;
+//system P;
+//system Timer, SUL, DistBelt, Bag, FCRight, FCLeft, NextSignalGenerator;</system></nta>
